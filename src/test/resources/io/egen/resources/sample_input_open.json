@@ -1,0 +1,16 @@
+{
+"messageType":"open",
+"topic":"test",
+"kafkaUrl":"localhost:9092",
+"zookeeperUrl":"localhost:2181",
+"consumerGroup":"testGroup",
+"schemaUrl":"http://localhost:8081"
+}
+
+{
+"messageType":"open",
+"topic":"test",
+"kafkaUrl":"<docker ip / docker0>:9092",
+"zookeeperUrl":"<docker ip / docker0>:2181",+
+"consumerGroup":"testGroup"
+}

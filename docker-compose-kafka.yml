@@ -1,0 +1,4 @@
+kafka-ws:
+  image: egenprad/kafka-realtime
+  ports:
+   - "9093:9093"
