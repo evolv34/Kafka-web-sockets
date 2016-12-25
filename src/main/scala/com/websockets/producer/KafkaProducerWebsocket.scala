@@ -5,11 +5,6 @@ import java.util.Properties
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.Producer
 import org.apache.kafka.clients.producer.ProducerRecord
-import com.google.gson.JsonParser
-import com.google.gson.JsonObject
-import scala.util.Try
-import scala.util.Success
-import scala.util.Failure
 
 class KafkaProducerWebsocket {
 

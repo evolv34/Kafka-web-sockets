@@ -3,16 +3,10 @@ package com.websockets.handler
 import scala.collection.mutable.HashMap
 
 import org.eclipse.jetty.websocket.api.Session
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage
-import org.eclipse.jetty.websocket.api.annotations.WebSocket
-
-import com.google.gson.Gson
-
-import com.websockets.KafkaConnector
+import org.eclipse.jetty.websocket.api.annotations.{ OnWebSocketClose, OnWebSocketConnect, OnWebSocketMessage, WebSocket }
+import com.websockets.connectors.KafkaConnector
 import com.websockets.MetaData
-import com.websockets.params
+import com.websockets.Params
 import com.websockets.producer.KafkaProducerWebsocket
 import com.websockets.producer.KafkaProducerWebsocket
 
@@ -27,9 +21,9 @@ class KafkaProducerHandler {
   @OnWebSocketMessage
   def onMessage(subscriber: Session, message: String): Unit = {
     var kafkaProducer: KafkaProducerWebsocket = new KafkaProducerWebsocket()
-    
+
     kafkaProducer.send(message)
-    
+
   }
 
   @OnWebSocketClose

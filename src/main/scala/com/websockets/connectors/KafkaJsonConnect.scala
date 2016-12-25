@@ -1,4 +1,4 @@
-package com.websockets
+package com.websockets.connectors
 
 import java.util.Properties
 import java.util.UUID
@@ -11,13 +11,14 @@ import org.apache.kafka.streams.StreamsConfig
 import org.apache.kafka.streams.kstream.KStream
 import org.apache.kafka.streams.kstream.KStreamBuilder
 import org.apache.kafka.streams.kstream.ValueMapper
-import org.eclipse.jetty.websocket.api.Session
+
+import com.websockets.{ MetaData, Params }
 
 class KafkaJsonConnect(metaData: MetaData) extends Connect {
 
   val metaDataLocal: MetaData = metaData;
   val consumerPicker: Random = new Random;
-  
+
   var streamConfig: StreamsConfig =
     new StreamsConfig(getProperties(
       metaDataLocal.kafkaUrl,
@@ -29,9 +30,9 @@ class KafkaJsonConnect(metaData: MetaData) extends Connect {
   var kafkaStreams: KafkaStreams = null;
 
   def onMessageReceivedFromTopic(message: Object, metaData: MetaData): Unit = {
-    val subscriber: Session = params.subscriber.get(metaData.consumerGroup)
+    val subscriber = Params.subscriber.get(metaData.consumerGroup)
       .get(metaData.topic)
-      .toList(consumerPicker.nextInt(params.subscriber.get(metaData.consumerGroup)
+      .toList(consumerPicker.nextInt(Params.subscriber.get(metaData.consumerGroup)
         .get(metaData.topic)
         .size))
     subscriber.getRemote.sendString(message.toString());
@@ -40,7 +41,6 @@ class KafkaJsonConnect(metaData: MetaData) extends Connect {
   def connect() {
     var kStreamBuilder: KStreamBuilder = new KStreamBuilder()
     var kstream: KStream[String, String] = kStreamBuilder.stream(Serdes.String(), Serdes.String(), metaDataLocal.topic)
-    println("connect")
     kstream.mapValues(new ValueMapper[String, String]() {
       @Override
       def apply(value: String): String = {

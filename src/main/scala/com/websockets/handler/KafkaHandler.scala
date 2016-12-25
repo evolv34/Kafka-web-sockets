@@ -1,22 +1,23 @@
 package com.websockets.handler
 
-import scala.collection.mutable.HashMap
-
 import org.eclipse.jetty.websocket.api.Session
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage
 import org.eclipse.jetty.websocket.api.annotations.WebSocket
 
-import com.google.gson.Gson
-
-import com.websockets.KafkaConnector
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.scala.experimental.ScalaObjectMapper
 import com.websockets.MetaData
-import com.websockets.params
-
+import com.websockets.Params
+import com.websockets.connectors.KafkaConnector
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import scala.collection.mutable.{ Map }
 
 @WebSocket
 class KafkaHandler {
+  val mapper = new ObjectMapper() with ScalaObjectMapper
+  mapper.registerModule(DefaultScalaModule)
 
   @OnWebSocketConnect
   def onConnect(subscriber: Session): Unit = {
@@ -24,65 +25,56 @@ class KafkaHandler {
 
   @OnWebSocketMessage
   def onMessage(subscriber: Session, message: String): Unit = {
+
     println("Message " + message)
+    var metaData: MetaData = null
+    try {
+      metaData = mapper.readValue(message, classOf[MetaData])
 
-    var metaData: MetaData = new Gson().fromJson(message, classOf[MetaData])
+      var messageType = metaData.messageType
+      var consumerGroup: String = metaData.consumerGroup
+      var topic: String = metaData.topic
 
-    var messageType = metaData.messageType;
-    var consumerGroup: String = metaData.consumerGroup;
-    var topic: String = metaData.topic;
+      if (!Params.subscriber.contains(consumerGroup)) {
+        Params.subscriber += (consumerGroup -> Map[String, Set[Session]]())
+        Params.connectGroupMap += (consumerGroup -> Map[String, KafkaConnector]())
+      }
+      if (!Params.subscriber(consumerGroup).contains(topic)) {
+        println("topic doesnot exists")
+        Params.subscriber(consumerGroup) += (topic -> Set[Session]())
 
-    if (params.subscriberMetaData.contains(subscriber)){
-      removeSubscriber(subscriber);
+        var kafkaConnect = new KafkaConnector()
+        kafkaConnect.connect(metaData);
+
+        Params.connectGroupMap(consumerGroup) += (topic -> kafkaConnect)
+
+      } else {
+        Params.connectGroupMap(consumerGroup)(topic).connect(metaData)
+      }
+
+      Params.subscriber(consumerGroup) += (topic -> (Params.subscriber(consumerGroup)(topic) + subscriber))
+      Params.subscriberMetaData += (subscriber -> s"$topic-$consumerGroup")
+
+      println(s"Number of Subscribers ${Params.subscriber(consumerGroup)(topic).size}")
+    } catch {
+      case e: Exception => e.printStackTrace()
     }
-    if (!params.subscriber.contains(consumerGroup)) {
-      println("Consumer group doesnot exists")
-      params.subscriber.put(consumerGroup, new HashMap[String, Set[Session]]())
-      params.connectGroupMap.put(consumerGroup, new HashMap[String, KafkaConnector]())
-    }
-    if (!params.subscriber.get(consumerGroup).get.contains(topic)) {
-      params.subscriber.get(consumerGroup)
-        .get
-        .put(topic, Set[Session]())
-
-        var kafkaConnect: KafkaConnector = new KafkaConnector();
-        kafkaConnect.connect(metaData);        
-        
-      params.connectGroupMap.get(consumerGroup).get.put(topic, kafkaConnect)
-
-    } else {
-      params.connectGroupMap.get(consumerGroup).get.get(topic).get.connect(metaData);
-    }
-    
-    params.subscriber.get(consumerGroup)
-      .get
-      .put(topic, params.subscriber.get(consumerGroup)
-        .get(topic) + subscriber)
-
-    println("Number of Subscribers " + params.subscriber.get(consumerGroup)
-      .get
-      .get(topic).get.size)
-
-    params.subscriberMetaData.put(subscriber, String.format("%s-%s", topic,consumerGroup))
   }
 
   @OnWebSocketClose
   def onClose(subscriber: Session, statusCode: Int, reason: String): Unit = {
     removeSubscriber(subscriber)
   }
-  
+
   def removeSubscriber(subscriber: Session): Unit = {
-    var topicConsumerGroup: String = params.subscriberMetaData.get(subscriber).get
-    var topic = topicConsumerGroup.split("-")(0)
-    var consumerGroup = topicConsumerGroup.split("-")(1)
-    
-    val updatedSubscriberList: Set[Session] = remove(subscriber, params.subscriber.get(consumerGroup)
-                                                                                  .get
-                                                                                  .get(topic)
-                                                                                  .get)
-    params.subscriber.get(consumerGroup).get.put(topic, updatedSubscriberList)
+    def remove(subsriber: Session, list: Set[Session]): Set[Session] = list diff Set(subsriber)
+
+    val topicConsumerGroup = Params.subscriberMetaData(subscriber)
+    val topic = topicConsumerGroup.split("-")(0)
+    val consumerGroup = topicConsumerGroup.split("-")(1)
+
+    val updatedSubscriberList: Set[Session] = remove(subscriber, Params.subscriber(consumerGroup)(topic))
+    Params.subscriber(consumerGroup) += (topic -> updatedSubscriberList)
   }
 
-
-  def remove(subsriber: Session, list: Set[Session]): Set[Session] = list diff Set(subsriber)
 }

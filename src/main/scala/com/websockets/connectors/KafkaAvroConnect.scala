@@ -1,8 +1,7 @@
-package com.websockets
+package com.websockets.connectors
 
 import java.util.Properties
 import java.util.UUID
-
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.streams.KafkaStreams
@@ -10,9 +9,10 @@ import org.apache.kafka.streams.StreamsConfig
 import org.apache.kafka.streams.kstream.ForeachAction
 import org.apache.kafka.streams.kstream.KStream
 import org.apache.kafka.streams.kstream.KStreamBuilder
-
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig
 import com.websockets.utils.GenericAvroSerde
+import com.websockets.MetaData
+import com.websockets.Params
 
 class KafkaAvroConnect(metaData:MetaData) extends Connect{
     val metaDataLocal = metaData;
@@ -26,7 +26,7 @@ class KafkaAvroConnect(metaData:MetaData) extends Connect{
     var kafkaStreams: KafkaStreams = null;
   
    def onMessageReceivedFromTopic(message: Object, metaData: MetaData): Unit = {
-    params.subscriber.get(metaData.consumerGroup)
+    Params.subscriber.get(metaData.consumerGroup)
                       .get(metaData.topic)
                       .par
                       .foreach { subscriber => subscriber.getRemote.sendString(message.toString()) }
