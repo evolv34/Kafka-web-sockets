@@ -13,10 +13,10 @@
        KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
      volumes:
        - /var/run/docker.sock:/var/run/docker.sock
-  # kafka-ws:
-  #   image: chanhub/kafka-realtime
-  #   ports:
-  #    - "9093:9093"
-  #   links:
-  #    - zookeeper
-  #    - kafka
+   #kafka-ws:
+   #  image: chanhub/kafka-realtime
+   #  ports:
+   #   - "9093:9093"
+     #links:
+     # - zookeeper
+     # - kafka
